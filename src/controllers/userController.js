@@ -43,6 +43,27 @@ const loginUser = async (req, res) => {
     }
 };
 
+// Update user profile
+const updateUser = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (req.body.newUsername) {
+            user.username = req.body.newUsername;
+            await user.save();
+            res.status(200).json({ message: 'User profile updated successfully' });
+        } else {
+            res.status(400).json({ message: 'Please provide a new username' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // Add more user-related functions (e.g., get user, update user, etc.)
 
-module.exports = { registerUser, loginUser };
+module.exports = { registerUser, loginUser, updateUser };
