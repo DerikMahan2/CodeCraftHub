@@ -1,66 +1,57 @@
 const User = require('../models/userModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const userService = require('../services/userService');
 
-// Register a new user
+/**
+ * Generate JWT token for user authentication
+ * @param {string} id - User ID to encode in token
+ * @returns {string} JWT token
+ */
+const generateToken = (id) => {
+    return jwt.sign({ id }, process.env.JWT_SECRET, {
+        expiresIn: '30d'
+    });
+};
+
+/**
+ * Register new user
+ * POST /api/users/register
+ */
 const registerUser = async (req, res) => {
-    const { username, email, password } = req.body;
-
     try {
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(400).json({ message: 'User already exists' });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ username, email, password: hashedPassword });
-        await newUser.save();
+        await userService.registerUser(req.body);
         res.status(201).json({ message: 'User created successfully' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(400).json({ message: error.message });
     }
 };
 
-// Login user
+/**
+ * Authenticate user & get token
+ * POST /api/users/login
+ */
 const loginUser = async (req, res) => {
-    const { email, password } = req.body;
-
     try {
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
-
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        res.json({ token });
+        const { email, password } = req.body;
+        const result = await userService.loginUser(email, password);
+        res.json(result);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(401).json({ message: error.message });
     }
 };
 
-// Update user profile
+/**
+ * Update user profile
+ * PUT /api/users/:username
+ * @requires Auth
+ */
 const updateUser = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
-        
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        if (req.body.newUsername) {
-            user.username = req.body.newUsername;
-            await user.save();
-            res.status(200).json({ message: 'User profile updated successfully' });
-        } else {
-            res.status(400).json({ message: 'Please provide a new username' });
-        }
+        await userService.updateUser(req.user.id, req.body.newUsername);
+        res.status(200).json({ message: 'User profile updated successfully' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(400).json({ message: error.message });
     }
 };
 

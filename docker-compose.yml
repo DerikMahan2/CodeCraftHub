@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # Node.js application
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/userdb
+      - JWT_SECRET=your_jwt_secret
+      - PORT=3000
+    depends_on:
+      - mongodb
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    networks:
+      - app-network
+
+  # MongoDB service
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - app-network
+
+# Persistent volume for MongoDB data
+volumes:
+  mongodb_data:
+
+# Network for service communication
+networks:
+  app-network:
+    driver: bridge 
